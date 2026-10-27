@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LearnoHub AI : Interactive way to learn AIML</title>
+  <link rel="stylesheet" href="style.css" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="logo">⚡ LearnoHub AI</div>
+    <div class="nav-links">
+      <a href="#home" onclick="showSection('home')">Home</a>
+      <a href="#learn" onclick="showSection('learn')">Learn</a>
+      <a href="#playground" onclick="showSection('playground')">Playground</a>
+      <a href="#simulations" onclick="showSection('simulations')">Simulations</a>
+      <a href="#game" onclick="showSection('game')">Game</a>
+      <a href="#quiz" onclick="showSection('quiz')">Quiz</a>
+      <a href="#dashboard" onclick="showSection('dashboard')" id="nav-dashboard" class="hidden">Dashboard</a>
+    </div>
+    <div class="nav-right">
+      <div class="xp-badge">XP: <span id="xp-display">0</span></div>
+      <button class="btn-ghost auth-btn" id="auth-btn" onclick="toggleAuthModal()">Login</button>
+    </div>
+  </nav>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="modal hidden">
+    <div class="modal-content">
+      <span class="close-modal" onclick="toggleAuthModal()">×</span>
+      <h2 id="auth-title">Login</h2>
+      <form id="auth-form" onsubmit="handleAuth(event)">
+        <input type="email" id="auth-email" placeholder="Email Address" required />
+        <input type="password" id="auth-password" placeholder="Password" required minlength="6" />
+        <div id="auth-error" class="hidden" style="color: var(--red); font-size: 0.85rem; margin-top: 0.5rem;"></div>
+        <button type="submit" class="btn-primary auth-submit">Submit</button>
+      </form>
+      <p class="auth-toggle-wrapper">
+        <span id="auth-toggle-text">Don't have an account?</span>
+        <button type="button" onclick="toggleAuthMode()" class="auth-toggle-link">Click here</button>
+      </p>
+    </div>
+  </div>
+
+  <!-- HOME SECTION -->
+  <section id="home" class="section active">
+    <div class="hero">
+      <h1 class="hero-title">Interactive way of learning <span class="accent">AIML</span></h1>
+      <p class="hero-sub">Modules · Mini-Games · Quizzes · Real World Understanding</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="showSection('learn')">Start Learning →</button>
+        <button class="btn-ghost" onclick="showSection('quiz')">Take Quiz</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><span>4</span>Modules</div>
+        <div class="stat"><span>1</span>Mini-Game</div>
+        <div class="stat"><span>10</span>Quiz Q's</div>
+        <div class="stat"><span>∞</span>Fun</div>
+      </div>
+    </div>
+    <div class="floating-blobs">
+      <div class="blob b1"></div>
+      <div class="blob b2"></div>
+      <div class="blob b3"></div>
+    </div>
+  </section>
+
+  <!-- LEARN SECTION -->
+  <section id="learn" class="section">
+    <div class="section-header">
+      <h2>📚 Learning Modules</h2>
+      <p>Pick a topic and level up your AI knowledge</p>
+    </div>
+    <div class="modules-grid">
+      <div class="module-card" onclick="openModule(0)">
+        <div class="module-icon">🧠</div>
+        <h3>What is AI?</h3>
+        <p>Understand intelligence in machines — from rule-based systems to neural networks.</p>
+        <div class="module-meta"><span class="tag">Beginner</span><span class="time">5 min</span></div>
+      </div>
+      <div class="module-card" onclick="openModule(1)">
+        <div class="module-icon">📈</div>
+        <h3>Machine Learning 101</h3>
+        <p>How machines learn from data without being explicitly programmed.</p>
+        <div class="module-meta"><span class="tag">Beginner</span><span class="time">6 min</span></div>
+      </div>
+      <div class="module-card" onclick="openModule(2)">
+        <div class="module-icon">🕸️</div>
+        <h3>Neural Networks</h3>
+        <p>The brain-inspired architecture powering modern AI breakthroughs.</p>
+        <div class="module-meta"><span class="tag">Intermediate</span><span class="time">7 min</span></div>
+      </div>
+      <div class="module-card" onclick="openModule(3)">
+        <div class="module-icon">🌍</div>
+        <h3>AI in Real World</h3>
+        <p>Spam filters, self-driving cars, ChatGPT — AI is everywhere.</p>
+        <div class="module-meta"><span class="tag">Advanced</span><span class="time">5 min</span></div>
+      </div>
+    </div>
+
+    <!-- MODULE READER -->
+    <div id="module-reader" class="module-reader hidden">
+      <button class="close-btn" onclick="closeModule()">← Back to Modules</button>
+      <div id="module-content"></div>
+      <div class="module-nav">
+        <button id="prev-page" class="btn-ghost" onclick="changePage(-1)">← Prev</button>
+        <span id="page-indicator"></span>
+        <button id="next-page" class="btn-primary" onclick="changePage(1)">Next →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME SECTION -->
+  <section id="game" class="section">
+    <div class="section-header">
+      <h2>🎮 AI Term Matcher</h2>
+      <p>Match AI terms to their definitions before time runs out!</p>
+    </div>
+    <div class="game-container">
+      <div class="game-hud">
+        <div class="hud-item">Score: <strong id="game-score">0</strong></div>
+        <div class="hud-item">Time: <strong id="game-timer">30</strong>s</div>
+        <div class="hud-item">Combo: <strong id="combo">x1</strong></div>
+      </div>
+      <div id="game-area">
+        <div class="game-cols">
+          <div class="game-col" id="terms-col">
+            <h4>Terms</h4>
+          </div>
+          <div class="game-col" id="defs-col">
+            <h4>Definitions</h4>
+          </div>
+        </div>
+        <div id="game-feedback" class="game-feedback"></div>
+      </div>
+      <div id="game-result" class="game-result hidden">
+        <h3 id="result-title"></h3>
+        <p id="result-msg"></p>
+        <button class="btn-primary" onclick="startGame()">Play Again</button>
+      </div>
+      <button class="btn-primary" id="start-game-btn" onclick="startGame()">Start Game</button>
+    </div>
+  </section>
+
+  <!-- QUIZ SECTION -->
+  <section id="quiz" class="section">
+    <div class="section-header">
+      <h2>🧩 AI/ML Quizzes</h2>
+      <p>Test your knowledge with our module-wise assessments!</p>
+    </div>
+    <div class="quiz-container">
+      <div id="quiz-start">
+        <div class="quiz-intro-card">
+          <div class="quiz-intro-icon">🎯</div>
+          <h3>Select a Module to Test</h3>
+          <ul style="margin-bottom: 2rem;">
+            <li>✅ 5 Multiple Choice Questions per Module</li>
+            <li>⚡ Instant Feedback on Each Answer</li>
+            <li>🏆 Score + Progress Update at the End</li>
+          </ul>
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+            <button class="btn-primary" onclick="startQuiz('Beginner')">Beginner Quiz</button>
+            <button class="btn-primary" onclick="startQuiz('Intermediate')">Intermediate Quiz</button>
+            <button class="btn-primary" onclick="startQuiz('Advanced')">Advanced Quiz</button>
+          </div>
+        </div>
+      </div>
+      <div id="quiz-active" class="hidden">
+        <div class="quiz-progress-bar">
+          <div id="quiz-progress-fill"></div>
+        </div>
+        <div class="quiz-meta">
+          <span id="q-number">Q 1 of 5</span>
+          <span id="q-score-live">Score: 0</span>
+        </div>
+        <div class="quiz-card">
+          <p id="quiz-question"></p>
+          <div id="quiz-options" class="options-grid"></div>
+          <div id="quiz-feedback" class="quiz-feedback hidden"></div>
+          <button id="next-q-btn" class="btn-primary hidden" onclick="nextQuestion()">Next Question →</button>
+        </div>
+      </div>
+      <div id="quiz-result" class="hidden">
+        <div class="result-card">
+          <div id="result-emoji" class="result-emoji"></div>
+          <h2 id="result-score-text"></h2>
+          <p id="result-comment"></p>
+          <div id="result-breakdown"></div>
+          <button class="btn-primary" onclick="restartQuiz()">Try Another Quiz</button>
+          <button class="btn-ghost" onclick="showSection('dashboard')">View Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD SECTION -->
+  <section id="dashboard" class="section">
+    <div class="section-header">
+      <h2>📊 Your Progress</h2>
+      <p>Track your AI journey and compare with others.</p>
+    </div>
+    <div class="dashboard-grid">
+      <div class="dash-card">
+        <h3 class="dash-card-title profile-title">Profile Stats</h3>
+        <p class="dash-stat">Email: <strong id="dash-email">---</strong></p>
+        <p class="dash-stat">Total XP: <strong id="dash-xp">0</strong></p>
+        <p class="dash-stat">Modules Completed: <strong id="dash-modules">0 / 4</strong></p>
+        <div style="margin-top: 1rem;">
+          <h4 style="font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem;">Quiz Scores</h4>
+          <ul id="dash-quiz-scores" style="list-style: none; font-size: 0.85rem; color: var(--text);">
+            <li>Beginner: <span style="color: var(--accent);">Not taken</span></li>
+            <li>Intermediate: <span style="color: var(--accent);">Not taken</span></li>
+            <li>Advanced: <span style="color: var(--accent);">Not taken</span></li>
+          </ul>
+        </div>
+        <div class="progress-container">
+          <p class="progress-label">Overall Progress: <span id="dash-progress-text">0%</span></p>
+          <div class="progress-track">
+            <div class="progress-fill" id="dash-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <h3 class="dash-card-title leader-title">Global Leaderboard</h3>
+        <ul class="leaderboard-list">
+          <li class="leaderboard-item">
+            <span>🥇 AI_Master</span><strong>1250 XP</strong>
+          </li>
+          <li class="leaderboard-item">
+            <span>🥈 CodeNinja</span><strong>980 XP</strong>
+          </li>
+          <li class="leaderboard-item">
+            <span>🥉 DataGeek</span><strong>850 XP</strong>
+          </li>
+          <li class="leaderboard-item current-user">
+            <span>👉 You</span><strong id="dash-board-xp">0 XP</strong>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLAYGROUND SECTION -->
+  <section id="playground" class="section">
+    <div class="section-header">
+      <h2>💻 Python Playground</h2>
+      <p>Write and run Python code right in your browser!</p>
+    </div>
+    <div class="playground-container">
+      <textarea id="python-code" class="python-editor" spellcheck="false" placeholder="# Write some Python!"
+        title="Python code editor"># Write some Python!
+print("Hello from LearnoHub AI!")
+for index in range(3):
+    print("AI is cool " + str(index))</textarea>
+      <button class="btn-primary run-code-btn" onclick="runPython()">Run Code ▶</button>
+      <div class="output-container">
+        <h4 class="output-label">Output:</h4>
+        <pre id="python-output" class="python-output-box"></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMULATIONS SECTION -->
+  <section id="simulations" class="section">
+    <div class="section-header">
+      <h2>🔍 Real-World Simulations</h2>
+      <p>Try out applied AI models in action.</p>
+    </div>
+    <div class="simulation-container">
+      <h3 class="sim-title">Spam Classifier Demo</h3>
+      <p class="sim-desc">Type a message below to see if our simple ML model thinks it's spam or not.</p>
+      <textarea id="spam-input" class="spam-input"
+        placeholder="e.g. Congratulations! You won a free lottery ticket. Click here to claim."></textarea>
+      <button class="btn-primary" onclick="checkSpam()">Analyze Message</button>
+      <div id="spam-result" class="spam-result hidden"></div>
+    </div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
