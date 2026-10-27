@@ -1,403 +1,785 @@
-// ==========================================
-// LearnoHub AI - Application Logic
-// ==========================================
+/* =============================================
+   AI CODELAB — script.js
+   Features: Section nav, Modules, Game, Quiz
+   ============================================= */
 
-const modulesData = [
-    {
-        id: 'mod-1',
-        title: 'Introduction to AI',
-        level: 'Beginner',
-        description: 'Understand the fundamental concepts of Artificial Intelligence and what makes machines "smart".',
-        content: `
-            <p><strong>Artificial Intelligence (AI)</strong> is the broad concept of machines being able to carry out tasks in a way that we would consider "smart". It is the simulation of human intelligence processes by computer systems.</p>
-            <p>These processes include learning (the acquisition of information and rules for using the information), reasoning (using the rules to reach approximate or definite conclusions) and self-correction.</p>
-        `,
-        example: 'Voice assistants like Siri and Alexa use AI to understand your voice commands and fetch the requested information or perform tasks.',
-        questions: [
-            { q: "What does AI stand for?", options: ["Automated Intelligence", "Artificial Intelligence", "Algorithmic Intuition", "Advanced Information"], answer: 1 },
-            { q: "Which of the following is NOT a core process of AI?", options: ["Learning", "Reasoning", "Digesting", "Self-correction"], answer: 2 },
-            { q: "Is a simple calculator considered AI?", options: ["Yes", "No", "Only on mobile", "Sometimes"], answer: 1 },
-            { q: "Which real-world application uses AI heavily?", options: ["A mechanical watch", "A light switch", "Self-driving cars", "A bicycle"], answer: 2 },
-            { q: "Narrow AI refers to systems that:", options: ["Can do anything a human can do", "Are exceptionally small", "Can perform only a specific task", "Are broken"], answer: 2 },
-        ]
-    },
-    {
-        id: 'mod-2',
-        title: 'Machine Learning 101',
-        level: 'Intermediate',
-        description: 'Dive into how machines learn from data without being explicitly programmed.',
-        content: `
-            <p><strong>Machine Learning (ML)</strong> is a subset of AI that provides systems the ability to automatically learn and improve from experience without being explicitly programmed.</p>
-            <p>Instead of writing code that tells the computer exactly what to do step-by-step, we feed the computer data and let it recognize patterns and make decisions based on that data. There are three main types: Supervised, Unsupervised, and Reinforcement Learning.</p>
-        `,
-        example: 'Email platforms use Machine Learning algorithms to analyze thousands of emails, learning to automatically filter out Spam messages from your inbox.',
-        questions: [
-            { q: "What is Machine Learning?", options: ["Writing explicit rules", "Learning from data", "Building hardware", "A new programming language"], answer: 1 },
-            { q: "Which type of learning uses labeled data?", options: ["Supervised Learning", "Unsupervised Learning", "Reinforcement Learning", "None of the above"], answer: 0 },
-            { q: "What is the primary input for a Machine Learning model?", options: ["Keyboards", "Data", "Monitors", "CSS"], answer: 1 },
-            { q: "Which is a common application of ML?", options: ["Email spam filtering", "Boiling water", "Typing a document manually", "A mechanical clock"], answer: 0 },
-            { q: "If an ML model learns by trial and error driven by rewards, it is using:", options: ["Supervised learning", "Reinforcement learning", "Unsupervised learning", "Deep learning"], answer: 1 },
-        ]
-    },
-    {
-        id: 'mod-3',
-        title: 'Neural Networks & Deep Learning',
-        level: 'Advanced',
-        description: 'Explore the brain-inspired architecture that powers the most advanced AI today.',
-        content: `
-            <p><strong>Neural Networks</strong> are computing systems inspired by the biological neural networks that constitute human brains. They consist of layers of interconnected "nodes" or "neurons".</p>
-            <p><strong>Deep Learning</strong> is a specialized form of machine learning that utilizes complex, multi-layered neural networks. The "deep" refers to the number of layers the network has. It is exceptionally good at processing unstructured data like images, audio, and text.</p>
-        `,
-        example: 'Facial recognition systems on modern smartphones use deep learning neural networks to analyze and map your facial features securely in milliseconds.',
-        questions: [
-            { q: "What biological system inspired Neural Networks?", options: ["The human digestive system", "The skeletal system", "The human brain", "Plant roots"], answer: 2 },
-            { q: "What does 'Deep' refer to in Deep Learning?", options: ["Deep philosophical concepts", "Many hidden layers in the network", "Deep sea exploration", "The amount of data"], answer: 1 },
-            { q: "What are the individual processing units in a neural network called?", options: ["CPUs", "Receptors", "Neurons/Nodes", "Switches"], answer: 2 },
-            { q: "Which data type is Deep Learning particularly good at handling?", options: ["Excel spreadsheets", "Unstructured data like images/audio", "Small text files", "Simple math equations"], answer: 1 },
-            { q: "Facial recognition primarily utilizes:", options: ["Basic 'If/Else' rules", "Deep Learning Neural Networks", "Manual data entry", "Bluetooth"], answer: 1 },
-        ]
+// ─── GLOBAL STATE ───────────────────────────
+let xp = 0;
+let user = null;
+
+function initAuth() {
+  const savedUser = localStorage.getItem('aicodelab_user');
+  if (savedUser) {
+    user = JSON.parse(savedUser);
+    if (!user.quizScores) user.quizScores = {};
+    xp = user.xp || 0;
+    updateNavForUser();
+  } else {
+    // Show login by default if not logged in
+    showSection('home');
+  }
+  document.getElementById('xp-display').textContent = xp;
+}
+
+function updateNavForUser() {
+  const authBtn = document.getElementById('auth-btn');
+  const navDash = document.getElementById('nav-dashboard');
+  if (user) {
+    authBtn.textContent = 'Logout';
+    navDash.classList.remove('hidden');
+  } else {
+    authBtn.textContent = 'Login';
+    navDash.classList.add('hidden');
+  }
+}
+
+let authMode = 'login';
+function toggleAuthModal() {
+  if (user && document.getElementById('auth-btn').textContent === 'Logout') {
+    // Logout
+    user = null;
+    xp = 0;
+    localStorage.removeItem('aicodelab_user');
+    updateNavForUser();
+    document.getElementById('xp-display').textContent = xp;
+    showSection('home');
+    showFeedbackToast('Logged out successfully');
+    return;
+  }
+  const modal = document.getElementById('auth-modal');
+  modal.classList.toggle('hidden');
+}
+
+function handleExplicitLogout() {
+  user = null;
+  xp = 0;
+  localStorage.removeItem('aicodelab_user');
+  updateNavForUser();
+  document.getElementById('xp-display').textContent = xp;
+  showSection('home');
+  showFeedbackToast('Logged out successfully');
+}
+
+function toggleAuthMode() {
+  authMode = authMode === 'login' ? 'register' : 'login';
+  document.getElementById('auth-title').textContent = authMode === 'login' ? 'Login' : 'Create Account';
+  document.getElementById('auth-toggle-text').textContent = authMode === 'login' ? "Don't have an account?" : "Already have an account?";
+}
+
+function handleAuth(e) {
+  e.preventDefault();
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+
+  const errorDiv = document.getElementById('auth-error');
+  errorDiv.classList.add('hidden');
+  errorDiv.textContent = '';
+
+  if (!email || !password) {
+    errorDiv.textContent = 'Please fill all fields.';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+  if (!email.includes('@') || !email.includes('.')) {
+    errorDiv.textContent = 'Please enter a valid email address.';
+    errorDiv.classList.remove('hidden');
+    return;
+  }
+
+  let usersDB = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
+
+  if (authMode === 'register') {
+    if (usersDB[email]) {
+      errorDiv.textContent = 'User already exists. Please login.';
+      errorDiv.classList.remove('hidden');
+      return;
     }
+    user = { email, password, xp: 0, completedModules: [], quizScores: {} };
+    usersDB[email] = user;
+    localStorage.setItem('learnohub_users_db', JSON.stringify(usersDB));
+    showFeedbackToast('Account created successfully!');
+  } else {
+    // Login
+    if (!usersDB[email]) {
+      errorDiv.textContent = 'No account found with this email.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+    if (usersDB[email].password !== password) {
+      errorDiv.textContent = 'Incorrect password.';
+      errorDiv.classList.remove('hidden');
+      return;
+    }
+    user = usersDB[email];
+    showFeedbackToast('Welcome back to LearnoHub AI!');
+  }
+
+  xp = user.xp || 0;
+  localStorage.setItem('aicodelab_user', JSON.stringify(user));
+  updateNavForUser();
+  document.getElementById('xp-display').textContent = xp;
+  document.getElementById('auth-modal').classList.add('hidden');
+  showFeedbackToast('Welcome to LearnoHub AI!');
+  showSection('dashboard');
+}
+
+function addXP(amount) {
+  xp += amount;
+  document.getElementById('xp-display').textContent = xp;
+  if (user) {
+    user.xp = xp;
+    localStorage.setItem('aicodelab_user', JSON.stringify(user));
+    let usersDB = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
+    if (usersDB[user.email]) {
+        usersDB[user.email].xp = xp;
+        localStorage.setItem('learnohub_users_db', JSON.stringify(usersDB));
+    }
+  }
+}
+
+// Call initAuth on load
+document.addEventListener('DOMContentLoaded', initAuth);
+
+// ─── NAVIGATION ─────────────────────────────
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  if (id === 'dashboard') {
+    updateDashboard();
+  }
+}
+
+// ─── MODULE DATA ────────────────────────────
+const modules = [
+  {
+    title: "🧠 What is AI?",
+    pages: [
+      {
+        heading: "Artificial Intelligence — The Big Idea",
+        body: `
+          <p>Artificial Intelligence (AI) is the ability of a computer program to perform tasks that normally require human intelligence — like understanding language, recognising images, or making decisions.</p>
+          <div class="callout">💡 Simple Definition: AI = Making computers smart enough to do human-like thinking.</div>
+          <h3>A Brief History</h3>
+          <ul>
+            <li><strong>1950s:</strong> Alan Turing asks "Can machines think?" — the birth of AI as a concept.</li>
+            <li><strong>1980s:</strong> Expert systems — rule-based programs that mimic human experts.</li>
+            <li><strong>2010s:</strong> Deep Learning explosion — AI beats humans at chess, Go, image recognition.</li>
+            <li><strong>2020s:</strong> ChatGPT, image generation, self-driving cars — AI is mainstream.</li>
+          </ul>
+        `
+      },
+      {
+        heading: "Types of AI",
+        body: `
+          <h3>Narrow AI (Weak AI)</h3>
+          <p>Designed for one specific task. Examples: Siri, spam filters, face unlock. This is <strong>all AI we have today.</strong></p>
+          <h3>General AI (Strong AI)</h3>
+          <p>AI that can do ANY intellectual task a human can. This <strong>does not exist yet</strong> — it's theoretical.</p>
+          <h3>Super AI</h3>
+          <p>AI smarter than all humans combined. Currently science fiction. Think Skynet or HAL 9000.</p>
+          <div class="callout">📌 Key Insight: Everything you use today — Google, Netflix, Alexa — uses Narrow AI.</div>
+        `
+      }
+    ]
+  },
+  {
+    title: "📈 Machine Learning 101",
+    pages: [
+      {
+        heading: "What is Machine Learning?",
+        body: `
+          <p>Machine Learning (ML) is a subset of AI where machines <strong>learn from data</strong> instead of being explicitly programmed with rules.</p>
+          <div class="callout">🔑 Traditional Programming: Input + Rules → Output<br/>🤖 Machine Learning: Input + Output → Rules (learned!)</div>
+          <h3>A Simple Example</h3>
+          <p>Instead of writing rules like "if the email contains 'lottery winner', it's spam" — you show the ML model thousands of spam and non-spam emails. It <em>figures out the rules itself.</em></p>
+        `
+      },
+      {
+        heading: "3 Types of Machine Learning",
+        body: `
+          <h3>1. Supervised Learning</h3>
+          <p>The model learns from <strong>labelled data</strong> (question + correct answer). Like a student learning from solved examples.</p>
+          <p>Examples: Email spam detection, house price prediction.</p>
+          <h3>2. Unsupervised Learning</h3>
+          <p>The model finds <strong>hidden patterns</strong> in data with no labels. Like sorting books without being told the categories.</p>
+          <p>Examples: Customer segmentation, anomaly detection.</p>
+          <h3>3. Reinforcement Learning</h3>
+          <p>The model <strong>learns by trial and error</strong> — gets rewards for good decisions, penalties for bad ones.</p>
+          <p>Examples: Game-playing AI (AlphaGo), self-driving cars.</p>
+          <div class="callout">🏆 AlphaGo used Reinforcement Learning to beat the world Go champion in 2016 — a milestone in AI history.</div>
+        `
+      }
+    ]
+  },
+  {
+    title: "🕸️ Neural Networks",
+    pages: [
+      {
+        heading: "The Brain-Inspired Algorithm",
+        body: `
+          <p>A Neural Network is a computing system inspired by how neurons in the human brain work. It's the engine behind most modern AI breakthroughs.</p>
+          <h3>How It Works</h3>
+          <ul>
+            <li><strong>Input Layer:</strong> Receives raw data (pixels, words, numbers).</li>
+            <li><strong>Hidden Layers:</strong> Process and find patterns in the data.</li>
+            <li><strong>Output Layer:</strong> Gives the final answer (cat or dog? spam or not?).</li>
+          </ul>
+          <div class="callout">🧠 A human brain has ~86 billion neurons. A modern AI model like GPT-4 has ~1.8 trillion parameters — the AI equivalent.</div>
+        `
+      },
+      {
+        heading: "Deep Learning = Many Layers",
+        body: `
+          <p><strong>Deep Learning</strong> is just a neural network with many hidden layers ("deep" layers). More layers = learns more complex patterns.</p>
+          <h3>Real-World Impact</h3>
+          <ul>
+            <li>🖼️ <strong>Image Recognition:</strong> Identifying objects, faces, diseases in X-rays.</li>
+            <li>🗣️ <strong>Natural Language:</strong> ChatGPT, Google Translate, voice assistants.</li>
+            <li>🎮 <strong>Game AI:</strong> AlphaGo, OpenAI Five beating Dota 2 pros.</li>
+            <li>🎵 <strong>Generation:</strong> DALL-E creating art, Suno generating music.</li>
+          </ul>
+          <div class="callout">📌 You've used deep learning today — every Google search, YouTube recommendation, and autocorrect uses it.</div>
+        `
+      }
+    ]
+  },
+  {
+    title: "🌍 AI in the Real World",
+    pages: [
+      {
+        heading: "AI Is Already Everywhere",
+        body: `
+          <p>AI isn't a future technology — it's running in the background of your daily life right now.</p>
+          <h3>Examples You Use Every Day</h3>
+          <ul>
+            <li>📧 <strong>Gmail:</strong> Spam filter, Smart Reply, email categorisation.</li>
+            <li>🎬 <strong>Netflix/YouTube:</strong> Recommendation engine (what to watch next).</li>
+            <li>📱 <strong>Face ID:</strong> Deep learning recognises your face to unlock your phone.</li>
+            <li>🗺️ <strong>Google Maps:</strong> Predicts traffic, estimates arrival time.</li>
+            <li>🛍️ <strong>Amazon:</strong> "Customers who bought this also bought..." — recommendation AI.</li>
+          </ul>
+        `
+      },
+      {
+        heading: "The Future of AI",
+        body: `
+          <h3>High-Impact Areas</h3>
+          <ul>
+            <li>🏥 <strong>Healthcare:</strong> AI diagnosing cancer earlier than doctors.</li>
+            <li>🚗 <strong>Transport:</strong> Self-driving cars (Tesla, Waymo).</li>
+            <li>🌾 <strong>Agriculture:</strong> AI drones monitoring crop health.</li>
+            <li>🎓 <strong>Education:</strong> Personalised tutoring systems adapting to each student.</li>
+          </ul>
+          <div class="callout">🚀 India's AI market is projected to reach $6 billion by 2025. AI skills are among the most in-demand globally.</div>
+          <h3>Ethical Challenges</h3>
+          <p>AI bias, data privacy, job displacement, and deepfakes are real challenges the field must address responsibly.</p>
+        `
+      }
+    ]
+  }
 ];
 
-const app = {
-    user: null, // { email, progress: { 'mod-1': { score: 4, completed: true } } }
-    views: ['login', 'dashboard', 'modules', 'module-detail', 'quiz', 'quiz-results'],
-    
-    // Quiz state
-    currentModuleId: null,
-    currentQuizIndex: 0,
-    currentScore: 0,
+// ─── MODULE LOGIC ────────────────────────────
+let currentModule = 0;
+let currentPage = 0;
 
-    init() {
-        this.bindEvents();
-        this.checkAuth();
-    },
+function openModule(index) {
+  currentModule = index;
+  currentPage = 0;
+  document.querySelectorAll('.module-card').forEach(c => c.style.display = 'none');
+  document.getElementById('module-reader').classList.remove('hidden');
+  renderModulePage();
+  addXP(5);
+}
 
-    bindEvents() {
-        document.getElementById('auth-form').addEventListener('submit', (e) => this.handleAuth(e));
-        document.getElementById('start-quiz-btn').addEventListener('click', () => this.startQuiz());
-        document.getElementById('quiz-next-btn').addEventListener('click', () => this.nextQuestion());
-    },
+function closeModule() {
+  document.getElementById('module-reader').classList.add('hidden');
+  document.querySelectorAll('.module-card').forEach(c => c.style.display = 'block');
+}
 
-    // --- Navigation ---
-    navigate(viewId) {
-        if (!this.user && viewId !== 'login') {
-            this.navigate('login');
-            return;
-        }
+function renderModulePage() {
+  const mod = modules[currentModule];
+  const page = mod.pages[currentPage];
+  document.getElementById('module-content').innerHTML = `
+    <h2>${page.heading}</h2>
+    ${page.body}
+  `;
+  document.getElementById('page-indicator').textContent =
+    `Page ${currentPage + 1} of ${mod.pages.length}`;
+  document.getElementById('prev-page').style.visibility =
+    currentPage === 0 ? 'hidden' : 'visible';
+  document.getElementById('next-page').textContent =
+    currentPage === mod.pages.length - 1 ? '✅ Finish' : 'Next →';
+}
 
-        this.views.forEach(v => {
-            document.getElementById(`view-${v}`).classList.add('hide');
-        });
-        document.getElementById(`view-${viewId}`).classList.remove('hide');
-        
-        window.scrollTo(0, 0);
-
-        if (viewId === 'dashboard') this.renderDashboard();
-        if (viewId === 'modules') this.renderModulesList();
-        
-        this.updateNavUI();
-    },
-
-    updateNavUI() {
-        const navActions = document.getElementById('nav-actions');
-        if (this.user) {
-            navActions.innerHTML = `
-                <span class="text-sm font-medium text-slate-500 hidden sm:inline-block">${this.user.email}</span>
-                <button onclick="app.navigate('dashboard')" class="text-slate-600 hover:text-brand-600 font-medium transition-colors">Dashboard</button>
-                <button onclick="app.logout()" class="text-red-500 hover:text-red-700 font-medium transition-colors ml-4">Logout</button>
-            `;
-        } else {
-            navActions.innerHTML = `
-                <button onclick="app.navigate('login')" class="text-brand-600 font-medium">Log In</button>
-            `;
-        }
-    },
-
-    // --- Auth ---
-    checkAuth() {
-        const stored = localStorage.getItem('learnohub_user');
-        if (stored) {
-            this.user = JSON.parse(stored);
-            this.navigate('dashboard');
-        } else {
-            this.navigate('login');
-        }
-    },
-
-    handleAuth(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const errorEl = document.getElementById('auth-error');
-
-        if (!email || !password) {
-            errorEl.textContent = 'Please fill out all fields.';
-            errorEl.classList.remove('hidden');
-            return;
-        }
-        
-        errorEl.classList.add('hidden');
-
-        // Mock auth logic
-        let users = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
-        
-        if (!users[email]) {
-            users[email] = { email, password, progress: {} };
-        } 
-        
-        if (users[email].password !== password) {
-            errorEl.textContent = 'Invalid credentials.';
-            errorEl.classList.remove('hidden');
-            return;
-        }
-
-        localStorage.setItem('learnohub_users_db', JSON.stringify(users));
-        this.user = users[email];
-        this.saveSession();
-        
-        // Reset form
-        document.getElementById('auth-form').reset();
-        this.navigate('dashboard');
-    },
-
-    logout() {
-        this.user = null;
-        localStorage.removeItem('learnohub_user');
-        this.navigate('login');
-    },
-
-    saveSession() {
-        localStorage.setItem('learnohub_user', JSON.stringify(this.user));
-        // Sync to DB
-        let users = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
-        users[this.user.email] = this.user;
-        localStorage.setItem('learnohub_users_db', JSON.stringify(users));
-    },
-
-    // --- Dashboard ---
-    renderDashboard() {
-        document.getElementById('dash-user').textContent = this.user.email.split('@')[0];
-
-        let totalScore = 0;
-        let quizzesTaken = 0;
-        let modulesCompleted = 0;
-        
-        let scoresHtml = '';
-
-        modulesData.forEach(mod => {
-            const prog = this.user.progress[mod.id];
-            if (prog && prog.completed) {
-                modulesCompleted++;
-                totalScore += prog.score;
-                quizzesTaken++;
-                
-                scoresHtml += `
-                    <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                        <div>
-                            <p class="font-semibold text-slate-900">${mod.title}</p>
-                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">${mod.level}</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xl font-bold ${prog.score >= 4 ? 'text-green-600' : 'text-brand-600'}">${prog.score}/5</span>
-                        </div>
-                    </div>
-                `;
-            } else {
-                scoresHtml += `
-                    <div class="px-6 py-4 flex items-center justify-between opacity-50">
-                        <div>
-                            <p class="font-medium text-slate-700">${mod.title}</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-sm font-medium text-slate-400">Not taken</span>
-                        </div>
-                    </div>
-                `;
-            }
-        });
-
-        document.getElementById('stat-modules').textContent = `${modulesCompleted} / ${modulesData.length}`;
-        
-        const avgScore = quizzesTaken > 0 ? ((totalScore / (quizzesTaken * 5)) * 100).toFixed(0) : 0;
-        document.getElementById('stat-score').textContent = `${avgScore}%`;
-
-        const totalProgress = ((modulesCompleted / modulesData.length) * 100).toFixed(0);
-        document.getElementById('stat-progress-text').textContent = `${totalProgress}%`;
-        
-        // Timeout to allow DOM paint for CSS transition to work
-        setTimeout(() => {
-            document.getElementById('stat-progress-bar').style.width = `${totalProgress}%`;
-        }, 100);
-
-        document.getElementById('dashboard-scores-list').innerHTML = scoresHtml;
-    },
-
-    // --- Modules Handling ---
-    renderModulesList() {
-        const grid = document.getElementById('modules-grid');
-        let html = '';
-
-        modulesData.forEach(mod => {
-            const prog = this.user.progress[mod.id] || { completed: false };
-            const statusHtml = prog.completed 
-                ? `<span class="inline-flex items-center text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded"><svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> Completed</span>`
-                : `<span class="inline-flex items-center text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Pending</span>`;
-
-            html += `
-                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md hover:border-brand-200 cursor-pointer transition-all flex flex-col h-full" onclick="app.openModuleDetail('${mod.id}')">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">${mod.level}</span>
-                        ${statusHtml}
-                    </div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">${mod.title}</h3>
-                    <p class="text-sm text-slate-500 leading-relaxed flex-grow">${mod.description}</p>
-                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center text-brand-600 font-semibold text-sm group">
-                        Start Module
-                        <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </div>
-                </div>
-            `;
-        });
-        grid.innerHTML = html;
-    },
-
-    openModuleDetail(id) {
-        const mod = modulesData.find(m => m.id === id);
-        if (!mod) return;
-        
-        this.currentModuleId = mod.id;
-
-        document.getElementById('detail-level').textContent = mod.level;
-        document.getElementById('detail-title').textContent = mod.title;
-        document.getElementById('detail-desc').textContent = mod.description;
-        document.getElementById('detail-content').innerHTML = mod.content;
-        document.getElementById('detail-example').textContent = mod.example;
-
-        this.navigate('module-detail');
-    },
-
-    // --- Quiz Handling ---
-    startQuiz() {
-        this.currentQuizIndex = 0;
-        this.currentScore = 0;
-        const mod = modulesData.find(m => m.id === this.currentModuleId);
-        document.getElementById('quiz-title').textContent = `${mod.title} Quiz`;
-        
-        this.navigate('quiz');
-        this.renderQuizQuestion();
-    },
-
-    renderQuizQuestion() {
-        const mod = modulesData.find(m => m.id === this.currentModuleId);
-        const qData = mod.questions[this.currentQuizIndex];
-
-        document.getElementById('quiz-progress-text').textContent = `Question ${this.currentQuizIndex + 1} of ${mod.questions.length}`;
-        document.getElementById('quiz-progress-bar').style.width = `${((this.currentQuizIndex) / mod.questions.length) * 100}%`;
-        
-        document.getElementById('quiz-question').textContent = qData.q;
-        
-        const optsContainer = document.getElementById('quiz-options');
-        optsContainer.innerHTML = '';
-
-        qData.options.forEach((opt, idx) => {
-            const btn = document.createElement('button');
-            btn.className = "w-full text-left px-5 py-4 rounded-xl border-2 border-slate-100 font-medium text-slate-700 hover:border-brand-500 hover:bg-brand-50 transition-colors focus:outline-none";
-            btn.textContent = opt;
-            btn.onclick = () => this.selectAnswer(idx, btn, qData.answer);
-            optsContainer.appendChild(btn);
-        });
-
-        document.getElementById('quiz-feedback').classList.add('hidden');
-        document.getElementById('quiz-next-btn').classList.add('hidden');
-    },
-
-    selectAnswer(selectedIndex, btnNode, correctIndex) {
-        // Disable all buttons to prevent multiple clicks
-        const allBtns = document.getElementById('quiz-options').querySelectorAll('button');
-        allBtns.forEach(b => b.disabled = true);
-
-        const feedbackBlock = document.getElementById('quiz-feedback');
-        const feedbackIcon = document.getElementById('quiz-feedback-icon');
-        const feedbackText = document.getElementById('quiz-feedback-text');
-
-        if (selectedIndex === correctIndex) {
-            btnNode.classList.remove('border-slate-100', 'hover:border-brand-500', 'hover:bg-brand-50');
-            btnNode.classList.add('border-green-500', 'bg-green-50', 'text-green-800');
-            this.currentScore++;
-            
-            feedbackBlock.classList.remove('hidden', 'bg-red-50', 'text-red-800', 'border', 'border-red-200');
-            feedbackBlock.classList.add('bg-green-50', 'text-green-800', 'border', 'border-green-200');
-            feedbackIcon.textContent = '✅';
-            feedbackText.textContent = 'Correct answer!';
-        } else {
-            btnNode.classList.remove('border-slate-100', 'hover:border-brand-500', 'hover:bg-brand-50');
-            btnNode.classList.add('border-red-500', 'bg-red-50', 'text-red-800');
-            
-            // Highlight correct one
-            allBtns[correctIndex].classList.remove('border-slate-100');
-            allBtns[correctIndex].classList.add('border-green-500', 'bg-green-50');
-
-            feedbackBlock.classList.remove('hidden', 'bg-green-50', 'text-green-800', 'border', 'border-green-200');
-            feedbackBlock.classList.add('bg-red-50', 'text-red-800', 'border', 'border-red-200');
-            feedbackIcon.textContent = '❌';
-            feedbackText.textContent = 'Incorrect. The highlighted answer was correct.';
-        }
-
-        document.getElementById('quiz-next-btn').classList.remove('hidden');
-        
-        if (this.currentQuizIndex === modulesData.find(m => m.id === this.currentModuleId).questions.length - 1) {
-            document.getElementById('quiz-next-btn').textContent = "Finish Quiz";
-        } else {
-            document.getElementById('quiz-next-btn').textContent = "Next Question";
-        }
-    },
-
-    nextQuestion() {
-        const modLength = modulesData.find(m => m.id === this.currentModuleId).questions.length;
-        this.currentQuizIndex++;
-        
-        if (this.currentQuizIndex >= modLength) {
-            this.finishQuiz();
-        } else {
-            this.renderQuizQuestion();
-        }
-    },
-
-    finishQuiz() {
-        // Save progress to user state
-        const prog = this.user.progress[this.currentModuleId] || { score: 0 };
-        // Save highest score
-        if (this.currentScore > (prog.score || 0)) {
-            prog.score = this.currentScore;
-        }
-        prog.completed = true;
-        this.user.progress[this.currentModuleId] = prog;
-        this.saveSession();
-
-        const modLength = modulesData.find(m => m.id === this.currentModuleId).questions.length;
-        document.getElementById('result-score').textContent = this.currentScore;
-        
-        const pcnt = this.currentScore / modLength;
-        let icon = '🏆';
-        let msg = 'Excellent work!';
-        
-        if (pcnt < 0.5) {
-            icon = '📚';
-            msg = 'Good attempt. Consider re-reading the module!';
-        } else if (pcnt < 0.8) {
-            icon = '👍';
-            msg = 'Well done! A solid understanding.';
-        }
-        
-        document.getElementById('result-icon').textContent = icon;
-        document.getElementById('result-message').textContent = msg;
-
-        this.navigate('quiz-results');
+function changePage(dir) {
+  const mod = modules[currentModule];
+  const newPage = currentPage + dir;
+  if (newPage < 0) return;
+  if (newPage >= mod.pages.length) {
+    if (user && !user.completedModules.includes(currentModule)) {
+      user.completedModules.push(currentModule);
+      localStorage.setItem('aicodelab_user', JSON.stringify(user));
+      let usersDB = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
+      if (usersDB[user.email]) {
+          usersDB[user.email] = user;
+          localStorage.setItem('learnohub_users_db', JSON.stringify(usersDB));
+      }
     }
+    addXP(20);
+    closeModule();
+    showFeedbackToast('🎉 Module complete! +20 XP earned!');
+    return;
+  }
+  currentPage = newPage;
+  renderModulePage();
+}
+
+function showFeedbackToast(msg) {
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = `
+    position:fixed;bottom:30px;right:30px;z-index:999;
+    background:#f5a623;color:#000;font-family:'Space Mono',monospace;
+    font-size:0.85rem;font-weight:700;padding:14px 22px;
+    border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.3);
+    animation:slideIn 0.3s ease;
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ─── GAME DATA ───────────────────────────────
+const gamePairs = [
+  { term: "Algorithm", def: "A set of rules a computer follows to solve a problem" },
+  { term: "Neural Network", def: "Brain-inspired layers that learn from data" },
+  { term: "Training Data", def: "Examples used to teach a machine learning model" },
+  { term: "Overfitting", def: "Model memorizes training data, fails on new data" },
+  { term: "NLP", def: "AI that understands and generates human language" },
+  { term: "Gradient Descent", def: "Optimization method to minimize model error" },
+];
+
+let gameActive = false;
+let gameTimerInterval = null;
+let gameTimeLeft = 30;
+let gameCurrentScore = 0;
+let comboCount = 1;
+let selectedTerm = null;
+let selectedDef = null;
+let matchedCount = 0;
+let totalPairs = 0;
+
+function startGame() {
+  gameActive = true;
+  gameCurrentScore = 0;
+  comboCount = 1;
+  matchedCount = 0;
+  gameTimeLeft = 30;
+  selectedTerm = null;
+  selectedDef = null;
+
+  document.getElementById('game-score').textContent = 0;
+  document.getElementById('game-timer').textContent = 30;
+  document.getElementById('combo').textContent = 'x1';
+  document.getElementById('game-feedback').textContent = '';
+  document.getElementById('game-result').classList.add('hidden');
+  document.getElementById('start-game-btn').style.display = 'none';
+  document.getElementById('game-area').style.display = 'block';
+
+  // Pick 4 random pairs
+  const shuffledPairs = [...gamePairs].sort(() => Math.random() - 0.5).slice(0, 4);
+  totalPairs = shuffledPairs.length;
+
+  // Shuffle terms and defs independently
+  const terms = [...shuffledPairs].sort(() => Math.random() - 0.5);
+  const defs = [...shuffledPairs].sort(() => Math.random() - 0.5);
+
+  const termsCol = document.getElementById('terms-col');
+  const defsCol = document.getElementById('defs-col');
+
+  termsCol.innerHTML = '<h4>Terms</h4>';
+  defsCol.innerHTML = '<h4>Definitions</h4>';
+
+  terms.forEach(pair => {
+    const tile = document.createElement('div');
+    tile.className = 'game-tile';
+    tile.textContent = pair.term;
+    tile.dataset.id = pair.term;
+    tile.dataset.type = 'term';
+    tile.onclick = () => selectTile(tile, 'term', pair.term);
+    termsCol.appendChild(tile);
+  });
+
+  defs.forEach(pair => {
+    const tile = document.createElement('div');
+    tile.className = 'game-tile';
+    tile.textContent = pair.def;
+    tile.dataset.id = pair.term; // same key as term
+    tile.dataset.type = 'def';
+    tile.onclick = () => selectTile(tile, 'def', pair.term);
+    defsCol.appendChild(tile);
+  });
+
+  // Start timer
+  clearInterval(gameTimerInterval);
+  gameTimerInterval = setInterval(() => {
+    gameTimeLeft--;
+    document.getElementById('game-timer').textContent = gameTimeLeft;
+    if (gameTimeLeft <= 0) {
+      clearInterval(gameTimerInterval);
+      endGame(false);
+    }
+  }, 1000);
+}
+
+function selectTile(tile, type, id) {
+  if (!gameActive) return;
+  if (tile.classList.contains('matched')) return;
+
+  if (type === 'term') {
+    // Deselect previous term
+    document.querySelectorAll('.game-tile[data-type="term"].selected')
+      .forEach(t => t.classList.remove('selected'));
+    tile.classList.add('selected');
+    selectedTerm = { el: tile, id };
+  } else {
+    document.querySelectorAll('.game-tile[data-type="def"].selected')
+      .forEach(t => t.classList.remove('selected'));
+    tile.classList.add('selected');
+    selectedDef = { el: tile, id };
+  }
+
+  if (selectedTerm && selectedDef) {
+    checkMatch();
+  }
+}
+
+function checkMatch() {
+  const isMatch = selectedTerm.id === selectedDef.id;
+  const feedback = document.getElementById('game-feedback');
+
+  if (isMatch) {
+    selectedTerm.el.classList.remove('selected');
+    selectedTerm.el.classList.add('matched');
+    selectedDef.el.classList.remove('selected');
+    selectedDef.el.classList.add('matched');
+    selectedTerm.el.onclick = null;
+    selectedDef.el.onclick = null;
+
+    const points = 10 * comboCount;
+    gameCurrentScore += points;
+    comboCount++;
+
+    document.getElementById('game-score').textContent = gameCurrentScore;
+    document.getElementById('combo').textContent = `x${comboCount}`;
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = `✅ Correct! +${points} pts | Combo x${comboCount}`;
+
+    matchedCount++;
+    if (matchedCount === totalPairs) {
+      clearInterval(gameTimerInterval);
+      setTimeout(() => endGame(true), 600);
+    }
+  } else {
+    selectedTerm.el.classList.add('wrong');
+    selectedDef.el.classList.add('wrong');
+    comboCount = 1;
+    document.getElementById('combo').textContent = 'x1';
+    feedback.style.color = 'var(--red)';
+    feedback.textContent = '❌ Wrong match! Combo reset.';
+    setTimeout(() => {
+      selectedTerm.el.classList.remove('wrong', 'selected');
+      selectedDef.el.classList.remove('wrong', 'selected');
+    }, 500);
+  }
+
+  selectedTerm = null;
+  selectedDef = null;
+}
+
+function endGame(won) {
+  gameActive = false;
+  document.getElementById('game-area').style.display = 'none';
+  const result = document.getElementById('game-result');
+  result.classList.remove('hidden');
+
+  if (won) {
+    const bonus = gameTimeLeft * 2;
+    const total = gameCurrentScore + bonus;
+    document.getElementById('result-title').textContent = `🏆 You Won! ${total} pts`;
+    document.getElementById('result-msg').textContent =
+      `Matched all pairs! +${bonus} time bonus. +${Math.floor(total/5)} XP`;
+    addXP(Math.floor(total / 5));
+  } else {
+    document.getElementById('result-title').textContent = `⏰ Time's Up! ${gameCurrentScore} pts`;
+    document.getElementById('result-msg').textContent =
+      `Matched ${matchedCount}/${totalPairs} pairs. Try again!`;
+    addXP(gameCurrentScore > 0 ? 5 : 0);
+  }
+  document.getElementById('start-game-btn').style.display = 'block';
+}
+
+// ─── QUIZ DATA ───────────────────────────────
+const quizData = {
+  Beginner: [
+    { q: "What does AI stand for?", options: ["Automated Intelligence", "Artificial Intelligence", "Automated Information", "Analytical Intelligence"], correct: 1, explanation: "AI stands for Artificial Intelligence — simulating human intelligence in machines." },
+    { q: "Which of these is an example of Narrow AI?", options: ["A robot that can do any job", "Siri answering questions", "HAL 9000 from 2001", "A conscious computer"], correct: 1, explanation: "Siri is Narrow AI — designed for one specific task (voice assistance). General AI doesn't exist yet." },
+    { q: "What is the term for the dataset used to teach an ML model?", options: ["Test Data", "Training Data", "Validation Data", "Sample Data"], correct: 1, explanation: "Training data is the labelled dataset used to teach the model to recognise patterns." },
+    { q: "Which type of ML uses labelled training data?", options: ["Unsupervised Learning", "Reinforcement Learning", "Supervised Learning", "Transfer Learning"], correct: 2, explanation: "Supervised Learning trains on labelled data — questions paired with correct answers." },
+    { q: "Machine Learning is a subset of ___?", options: ["Deep Learning", "Artificial Intelligence", "Data Science", "Robotics"], correct: 1, explanation: "Machine Learning is a subset of AI where machines learn from data." }
+  ],
+  Intermediate: [
+    { q: "A neural network is inspired by the human ___?", options: ["Heart", "Lungs", "Brain", "Eyes"], correct: 2, explanation: "Neural networks mimic how neurons in the human brain are connected and communicate." },
+    { q: "Which algorithm learns by trial and error with rewards?", options: ["Supervised Learning", "Reinforcement Learning", "Clustering", "Regression"], correct: 1, explanation: "Reinforcement Learning agents learn by receiving rewards for good actions and penalties for bad ones." },
+    { q: "When a model performs well on training data but poorly on new data, this is called ___?", options: ["Underfitting", "Overfitting", "Normalisation", "Bias"], correct: 1, explanation: "Overfitting: the model memorises training examples instead of learning generalizable patterns." },
+    { q: "Which company built the AI that defeated the world Go champion?", options: ["OpenAI", "Meta", "DeepMind", "Microsoft"], correct: 2, explanation: "DeepMind's AlphaGo defeated world champion Lee Sedol in 2016 using reinforcement learning." },
+    { q: "What is the role of Hidden Layers in a Neural Network?", options: ["To store data permanently", "To directly output results", "To process and find patterns in data", "To display UI"], correct: 2, explanation: "Hidden layers process the input data and extract complex features/patterns." }
+  ],
+  Advanced: [
+    { q: "What does NLP stand for?", options: ["Neural Learning Protocol", "Non-Linear Processing", "Natural Language Processing", "Numeric Logic Programming"], correct: 2, explanation: "NLP = Natural Language Processing. It enables AI to understand and generate human language." },
+    { q: "'Deep' in Deep Learning refers to ___?", options: ["How complex the code is", "Number of hidden layers in neural networks", "Speed of computation", "The size of training data"], correct: 1, explanation: "Deep Learning = neural networks with many hidden layers. More layers = deeper = more complex patterns learned." },
+    { q: "Which of the following is NOT a common activation function?", options: ["ReLU", "Sigmoid", "Linear Regression", "Tanh"], correct: 2, explanation: "Linear Regression is an algorithm, not an activation function (like ReLU or Sigmoid)." },
+    { q: "What is Gradient Descent used for?", options: ["Increasing data size", "Optimizing and minimizing model error", "Adding layers to networks", "Translating text"], correct: 1, explanation: "Gradient descent is an optimization algorithm used to minimize the cost/error function." },
+    { q: "Which type of learning is typically used for clustering data into groups?", options: ["Supervised Learning", "Unsupervised Learning", "Reinforcement Learning", "Transfer Learning"], correct: 1, explanation: "Unsupervised learning finds hidden patterns and clusters unlabelled data." }
+  ]
 };
 
-// Start app
-document.addEventListener('DOMContentLoaded', () => {
-    app.init();
-});
+// ─── QUIZ LOGIC ──────────────────────────────
+let currentQuizLevel = 'Beginner';
+let currentQuizQuestions = [];
+let quizIndex = 0;
+let quizScore = 0;
+let quizAnswers = [];
+
+function startQuiz(level) {
+  currentQuizLevel = level;
+  currentQuizQuestions = quizData[level];
+  quizIndex = 0;
+  quizScore = 0;
+  quizAnswers = [];
+  document.getElementById('quiz-start').classList.add('hidden');
+  document.getElementById('quiz-result').classList.add('hidden');
+  document.getElementById('quiz-active').classList.remove('hidden');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = currentQuizQuestions[quizIndex];
+  const progress = ((quizIndex) / currentQuizQuestions.length) * 100;
+
+  document.getElementById('quiz-progress-fill').style.width = progress + '%';
+  document.getElementById('q-number').textContent = `Q ${quizIndex + 1} of ${currentQuizQuestions.length}`;
+  document.getElementById('q-score-live').textContent = `Score: ${quizScore}`;
+  document.getElementById('quiz-question').textContent = q.q;
+  document.getElementById('quiz-feedback').className = 'quiz-feedback hidden';
+  document.getElementById('quiz-feedback').textContent = '';
+  document.getElementById('next-q-btn').classList.add('hidden');
+
+  const optionsDiv = document.getElementById('quiz-options');
+  optionsDiv.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = opt;
+    btn.onclick = () => selectAnswer(i, btn);
+    optionsDiv.appendChild(btn);
+  });
+}
+
+function selectAnswer(index, btn) {
+  const q = currentQuizQuestions[quizIndex];
+  const allBtns = document.querySelectorAll('.option-btn');
+  allBtns.forEach(b => b.disabled = true);
+
+  const feedback = document.getElementById('quiz-feedback');
+  feedback.classList.remove('hidden');
+
+  if (index === q.correct) {
+    btn.classList.add('correct');
+    quizScore++;
+    feedback.className = 'quiz-feedback correct';
+    feedback.textContent = '✅ Correct! ' + q.explanation;
+    quizAnswers.push(true);
+    addXP(10);
+  } else {
+    btn.classList.add('incorrect');
+    allBtns[q.correct].classList.add('correct');
+    feedback.className = 'quiz-feedback incorrect';
+    feedback.textContent = '❌ Wrong! ' + q.explanation;
+    quizAnswers.push(false);
+  }
+
+  document.getElementById('next-q-btn').classList.remove('hidden');
+}
+
+function nextQuestion() {
+  quizIndex++;
+  if (quizIndex >= currentQuizQuestions.length) {
+    showQuizResult();
+  } else {
+    renderQuestion();
+  }
+}
+
+function showQuizResult() {
+  document.getElementById('quiz-active').classList.add('hidden');
+  document.getElementById('quiz-result').classList.remove('hidden');
+  document.getElementById('quiz-progress-fill').style.width = '100%';
+
+  const pct = Math.round((quizScore / currentQuizQuestions.length) * 100);
+  let emoji = '😐', comment = "Keep studying — you'll get there!";
+  if (pct >= 80) { emoji = '🏆'; comment = "Outstanding! You're an AI genius!"; }
+  else if (pct >= 60) { emoji = '🎉'; comment = "Great work! Strong foundation!"; }
+  else if (pct >= 40) { emoji = '👍'; comment = "Good effort! Review the modules."; }
+
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-score-text').textContent = `${quizScore} / ${currentQuizQuestions.length} — ${pct}%`;
+  document.getElementById('result-comment').textContent = comment;
+
+  const correct = quizAnswers.filter(Boolean).length;
+  const wrong = quizAnswers.length - correct;
+  document.getElementById('result-breakdown').innerHTML = `
+    <div class="breakdown-item">✅ Correct: <span>${correct}</span></div>
+    <div class="breakdown-item">❌ Wrong: <span>${wrong}</span></div>
+    <div class="breakdown-item">⚡ XP Earned: <span>${correct * 10}</span></div>
+    <div class="breakdown-item">🎯 Accuracy: <span>${pct}%</span></div>
+  `;
+
+  // Store quiz score in user profile
+  if (user) {
+    user.quizScores[currentQuizLevel] = Math.max(user.quizScores[currentQuizLevel] || 0, quizScore);
+    localStorage.setItem('aicodelab_user', JSON.stringify(user));
+    let usersDB = JSON.parse(localStorage.getItem('learnohub_users_db')) || {};
+    if (usersDB[user.email]) {
+        usersDB[user.email] = user;
+        localStorage.setItem('learnohub_users_db', JSON.stringify(usersDB));
+    }
+  }
+}
+
+function restartQuiz() {
+  document.getElementById('quiz-result').classList.add('hidden');
+  document.getElementById('quiz-start').classList.remove('hidden');
+}
+
+// ─── DASHBOARD ──────────────────────────────
+function updateDashboard() {
+  if (user) {
+    document.getElementById('dash-email').textContent = user.email;
+    document.getElementById('dash-xp').textContent = xp;
+    document.getElementById('dash-board-xp').textContent = xp + ' XP';
+    
+    // Modules completion
+    const modulesCompleted = user.completedModules ? user.completedModules.length : 0;
+    document.getElementById('dash-modules').textContent = `${modulesCompleted} / 4`;
+
+    // Quiz scores
+    const quizScores = user.quizScores || {};
+    const quizList = document.getElementById('dash-quiz-scores');
+    quizList.innerHTML = `
+      <li>Beginner: <span style="color: var(--${quizScores['Beginner'] !== undefined ? 'green' : 'accent'});">${quizScores['Beginner'] !== undefined ? quizScores['Beginner'] + '/5' : 'Not taken'}</span></li>
+      <li>Intermediate: <span style="color: var(--${quizScores['Intermediate'] !== undefined ? 'green' : 'accent'});">${quizScores['Intermediate'] !== undefined ? quizScores['Intermediate'] + '/5' : 'Not taken'}</span></li>
+      <li>Advanced: <span style="color: var(--${quizScores['Advanced'] !== undefined ? 'green' : 'accent'});">${quizScores['Advanced'] !== undefined ? quizScores['Advanced'] + '/5' : 'Not taken'}</span></li>
+    `;
+
+    // Overall progress calculation (Modules 40%, Quizzes 60%)
+    let quizzesTaken = 0;
+    let totalQuizScore = 0;
+    ['Beginner', 'Intermediate', 'Advanced'].forEach(level => {
+      if (quizScores[level] !== undefined) {
+        quizzesTaken++;
+        totalQuizScore += quizScores[level];
+      }
+    });
+
+    const moduleProgress = (modulesCompleted / 4) * 40;
+    const quizProgress = quizzesTaken > 0 ? (totalQuizScore / 15) * 60 : 0;
+    const overallProgress = Math.round(moduleProgress + quizProgress);
+
+    document.getElementById('dash-progress-text').textContent = `${overallProgress}%`;
+    document.getElementById('dash-progress-fill').style.width = `${overallProgress}%`;
+  }
+}
+
+// ─── PYTHON PLAYGROUND ──────────────────────
+let pyodideReady = false;
+let pyodideInstance = null;
+
+async function initPyodide() {
+  if (pyodideReady) return;
+  document.getElementById('python-output').textContent = 'Loading Python engine (Pyodide)...';
+  try {
+    pyodideInstance = await loadPyodide();
+    pyodideReady = true;
+    document.getElementById('python-output').textContent = 'Ready! Click "Run Code" to execute.';
+  } catch (err) {
+    document.getElementById('python-output').textContent = 'Error loading Python engine.';
+  }
+}
+
+async function runPython() {
+  const outputEl = document.getElementById('python-output');
+  if (!pyodideReady) {
+    await initPyodide();
+  }
+  
+  const code = document.getElementById('python-code').value;
+  outputEl.textContent = 'Running...';
+  
+  try {
+    // Capture stdout
+    pyodideInstance.runPython(`
+import sys
+import io
+sys.stdout = io.StringIO()
+    `);
+    
+    pyodideInstance.runPython(code);
+    
+    const stdout = pyodideInstance.runPython("sys.stdout.getvalue()");
+    outputEl.textContent = stdout || "Code executed successfully with no output.";
+    addXP(5); // Reward for running code
+  } catch (err) {
+    outputEl.textContent = err;
+  }
+}
+
+// Initialize Pyodide early if possible, or lazy load
+setTimeout(initPyodide, 2000);
+
+// ─── SPAM SIMULATOR ─────────────────────────
+function checkSpam() {
+  const input = document.getElementById('spam-input').value.toLowerCase();
+  const resultEl = document.getElementById('spam-result');
+  resultEl.classList.remove('hidden');
+  
+  if (!input) {
+    resultEl.textContent = "Please enter a message.";
+    resultEl.style.background = 'var(--surface2)';
+    resultEl.style.color = 'var(--text)';
+    return;
+  }
+  
+  // Simple heuristic-based naive mock model
+  const spamKeywords = ['lottery', 'win', 'free', 'prize', 'urgent', 'click here', 'claim', 'money', 'cash', 'viagra', 'investment'];
+  let spamScore = 0;
+  
+  spamKeywords.forEach(word => {
+    if (input.includes(word)) spamScore += 1;
+  });
+  
+  if (spamScore >= 2 || (spamScore === 1 && input.includes('!'))) {
+    resultEl.textContent = `🚨 CLASSIFIED AS SPAM (Confidence: ${Math.min(99, 50 + spamScore * 15)}%)`;
+    resultEl.style.background = 'rgba(255, 82, 82, 0.1)';
+    resultEl.style.color = 'var(--red)';
+    resultEl.style.border = '1px solid var(--red)';
+  } else {
+    resultEl.textContent = `✅ CLASSIFIED AS SAFE (Confidence: ${Math.min(99, 70 + (2 - spamScore) * 10)}%)`;
+    resultEl.style.background = 'rgba(0, 230, 118, 0.1)';
+    resultEl.style.color = 'var(--green)';
+    resultEl.style.border = '1px solid var(--green)';
+  }
+  
+  addXP(2); // Small reward
+}
